@@ -1,0 +1,6 @@
+event_id,customer_id,event_type,amount,event_ts
+e-1001,c-001,Purchase,29.99,2026-07-07T10:00:00Z
+e-1002,c-002,Refund,5.50,2026-07-07T10:05:00Z
+ e-1003 , c-003 , Signup , , 2026-07-07T10:10:00Z
+e-1004,c-004,Purchase,not-a-number,2026-07-07T10:15:00Z
+e-1005,c-005,Page_View,0,2026-07-07T10:20:00Z
