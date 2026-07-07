@@ -42,4 +42,4 @@ def test_build_output_key_uses_partitioned_curated_prefix():
     key = lambda_function.build_output_key("raw/events/input.csv", "curated/events")
 
     assert key.startswith("curated/events/run_date=")
-    assert key.endswith("/input.jsonl")
+    assert key.endswith("/de_input.jsonl")
