@@ -20,6 +20,7 @@ def normalize_record(record: dict[str, str]) -> dict[str, Any]:
         "event_type": clean_string(record.get("event_type")).lower(),
         "amount": parse_decimal(record.get("amount")),
         "event_ts": clean_string(record.get("event_ts")),
+        "pipeline_version": "v2",
         "processed_at": datetime.now(timezone.utc).isoformat(),
     }
 
