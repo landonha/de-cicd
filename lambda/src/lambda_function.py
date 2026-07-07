@@ -12,6 +12,7 @@ from urllib.parse import unquote_plus
 # workflow tests this file, packages everything under lambda/src, and deploys
 # the resulting zip to AWS Lambda after relevant changes reach main.
 
+pipeline_version = "v3"
 
 def parse_csv(text: str) -> list[dict[str, str]]:
     # Convert the uploaded CSV text into dictionaries keyed by the header row.
@@ -27,7 +28,7 @@ def normalize_record(record: dict[str, str]) -> dict[str, Any]:
         "event_type": clean_string(record.get("event_type")).lower(),
         "amount": parse_decimal(record.get("amount")),
         "event_ts": clean_string(record.get("event_ts")),
-        "pipeline_version": "v2",
+        "pipeline_version": pipeline_version,
         "processed_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -58,6 +59,7 @@ def records_to_jsonl(records: list[dict[str, Any]]) -> str:
 def build_output_key(input_key: str, output_prefix: str) -> str:
     # Partition output by processing date so downstream jobs can read one run at a time.
     file_name = input_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+    file_name = "de_" + file_name
     run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     return f"{output_prefix.rstrip('/')}/run_date={run_date}/{file_name}.jsonl"
 
