@@ -1,14 +1,14 @@
 # DE CI/CD Lambda Demo
 
-一个很小的 Data Engineering CI/CD 示例：
+A small Data Engineering CI/CD example:
 
-- Lambda 接收 S3 CSV 上传事件
-- 读取 raw CSV
-- 做字段标准化和简单数据清洗
-- 写出 curated JSONL 到另一个 S3 prefix
-- GitHub Actions 在 PR merge 到 `main` 后自动部署代码到 AWS Lambda
+- The Lambda function receives S3 CSV upload events.
+- It reads raw CSV files from S3.
+- It standardizes fields and performs simple data cleaning.
+- It writes curated JSONL output to another S3 prefix.
+- GitHub Actions automatically deploys the code to AWS Lambda after changes are merged into `main`.
 
-## 项目结构
+## Project Structure
 
 ```text
 .
@@ -19,25 +19,31 @@
 └── README.md
 ```
 
-## Lambda 环境变量
+## Lambda Environment Variables
 
-| 变量 | 示例 | 说明 |
+| Variable | Example | Description |
 | --- | --- | --- |
-| `OUTPUT_BUCKET` | `my-curated-bucket` | 输出 JSONL 的 bucket；不设置时默认写回输入 bucket |
-| `OUTPUT_PREFIX` | `curated/events` | 输出 prefix |
+| `OUTPUT_BUCKET` | `my-curated-bucket` | Bucket for JSONL output. If unset, the Lambda writes back to the input bucket. |
+| `OUTPUT_PREFIX` | `curated/events` | Output prefix for curated files. |
 
-## 本地测试
+## Local Testing
 
-```powershell
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+source .venv/bin/activate
 pip install -r requirements-dev.txt
 pytest
 ```
 
-## GitHub Actions 部署配置
+On Windows PowerShell, activate the virtual environment with:
 
-在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 配置：
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+## GitHub Actions Deployment Configuration
+
+Configure the following values in your GitHub repository under `Settings -> Secrets and variables -> Actions`:
 
 | Secret / Variable | 示例 |
 | --- | --- |
@@ -45,12 +51,11 @@ pytest
 | `AWS_REGION` | `us-east-1` |
 | `LAMBDA_FUNCTION_NAME` | `de-cicd-demo` |
 
-workflow 使用 GitHub OIDC 登录 AWS，不需要长期 AWS access key。PR merge 后会产生一次 push 到 `main`，因此 workflow 监听 `main` 分支的 push 来做 CD。
+The workflow uses GitHub OIDC to authenticate with AWS, so no long-lived AWS access keys are required. When a PR is merged, GitHub creates a push to `main`; the workflow listens for pushes to `main` and performs the CD deployment.
 
-## AWS 侧最小准备
+## Minimum AWS Setup
 
-1. 创建 Lambda function，runtime 选择 Python 3.12，handler 设置为 `lambda_function.handler`。
-2. 给 Lambda execution role 加上读取 raw S3 bucket、写入 curated S3 bucket 的权限。
-3. 给 GitHub Actions OIDC role 加上 `lambda:UpdateFunctionCode` 权限。
-4. 配置 S3 event notification，让 raw bucket 的 CSV 上传事件触发 Lambda。
-
+1. Create a Lambda function with the Python 3.12 runtime and set the handler to `lambda_function.handler`.
+2. Grant the Lambda execution role permission to read from the raw S3 bucket and write to the curated S3 bucket.
+3. Grant the GitHub Actions OIDC role permission to call `lambda:UpdateFunctionCode`.
+4. Configure an S3 event notification so CSV uploads to the raw bucket trigger the Lambda function.

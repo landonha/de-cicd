@@ -8,12 +8,19 @@ from typing import Any
 from urllib.parse import unquote_plus
 
 
+# This Lambda is the runtime part of the DE CI/CD demo. The GitHub Actions
+# workflow tests this file, packages everything under lambda/src, and deploys
+# the resulting zip to AWS Lambda after relevant changes reach main.
+
+
 def parse_csv(text: str) -> list[dict[str, str]]:
+    # Convert the uploaded CSV text into dictionaries keyed by the header row.
     reader = csv.DictReader(io.StringIO(text))
     return [dict(row) for row in reader]
 
 
 def normalize_record(record: dict[str, str]) -> dict[str, Any]:
+    # Standardize one raw event record before it is written to the curated zone.
     normalized = {
         "event_id": clean_string(record.get("event_id")),
         "customer_id": clean_string(record.get("customer_id")),
@@ -32,6 +39,7 @@ def clean_string(value: str | None) -> str:
 
 
 def parse_decimal(value: str | None) -> str | None:
+    # Invalid or missing numeric values are dropped from the output record.
     raw_value = clean_string(value)
     if raw_value == "":
         return None
@@ -43,10 +51,12 @@ def parse_decimal(value: str | None) -> str | None:
 
 
 def records_to_jsonl(records: list[dict[str, Any]]) -> str:
+    # JSONL keeps one JSON object per line, which is convenient for S3 data lakes.
     return "\n".join(json.dumps(record, separators=(",", ":")) for record in records) + "\n"
 
 
 def build_output_key(input_key: str, output_prefix: str) -> str:
+    # Partition output by processing date so downstream jobs can read one run at a time.
     file_name = input_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
     run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     return f"{output_prefix.rstrip('/')}/run_date={run_date}/{file_name}.jsonl"
@@ -59,6 +69,7 @@ def get_s3_client():
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    # S3 event notifications can contain multiple uploaded objects in one event.
     s3 = get_s3_client()
     output_bucket = os.environ.get("OUTPUT_BUCKET")
     output_prefix = os.environ.get("OUTPUT_PREFIX", "curated/events")
@@ -70,6 +81,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         target_bucket = output_bucket or source_bucket
         target_key = build_output_key(source_key, output_prefix)
 
+        # Read the raw CSV from S3, normalize each row, and write curated JSONL back to S3.
         source_object = s3.get_object(Bucket=source_bucket, Key=source_key)
         csv_text = source_object["Body"].read().decode("utf-8")
         records = [normalize_record(record) for record in parse_csv(csv_text)]
@@ -90,4 +102,3 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         )
 
     return {"processed_files": processed_files}
-

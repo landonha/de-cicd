@@ -1,5 +1,7 @@
 name: Deploy Lambda
 
+# Run this deployment pipeline only when Lambda code or the pipeline definition
+# changes on main. The manual trigger is useful for redeploying the same code.
 on:
   push:
     branches:
@@ -9,6 +11,8 @@ on:
       - ".github/workflows/deploy-lambda.yml"
   workflow_dispatch:
 
+# id-token: write lets GitHub request an OIDC token for AWS role assumption.
+# contents: read lets the checkout step read the repository files.
 permissions:
   id-token: write
   contents: read
@@ -19,34 +23,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Pull the repository onto the GitHub-hosted runner.
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Match the Python version used by the Lambda runtime.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # Stop the deployment early if the unit tests fail.
       - name: Run tests
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
           pytest
 
+      # Use GitHub OIDC to assume an AWS IAM role without storing long-lived keys.
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
 
+      # Zip the Lambda source directory so lambda_function.py is at the zip root.
       - name: Package Lambda
         run: |
           cd lambda/src
           zip -r ../../lambda_package.zip .
 
+      # Upload the zip package to the existing Lambda function.
       - name: Deploy Lambda code
         run: |
           aws lambda update-function-code \
             --function-name "${{ vars.LAMBDA_FUNCTION_NAME || secrets.LAMBDA_FUNCTION_NAME }}" \
             --zip-file fileb://lambda_package.zip
-
