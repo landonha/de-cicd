@@ -1,0 +1,38 @@
+name: PR Checks
+
+# Run the same unit tests before a pull request can be safely merged into main.
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "lambda/**"
+      - "tests/**"
+      - "requirements-dev.txt"
+      - ".github/workflows/pr-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Pull the PR code onto the GitHub-hosted runner.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Match the Python version used by the Lambda runtime.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # This is the required quality gate for PRs into main.
+      - name: Run tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pytest

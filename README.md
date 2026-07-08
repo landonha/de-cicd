@@ -53,9 +53,11 @@ Configure the following values in your GitHub repository under `Settings -> Secr
 
 The workflow uses GitHub OIDC to authenticate with AWS, so no long-lived AWS access keys are required. When a PR is merged, GitHub creates a push to `main`; the workflow listens for pushes to `main` and performs the CD deployment.
 
+For a fuller walkthrough of the AWS resources, IAM permissions, GitHub Actions values, Lambda trigger, and validation steps, see [AWS Configuration Guide](docs/aws-configuration.md).
+
 ## Minimum AWS Setup
 
 1. Create a Lambda function with the Python 3.12 runtime and set the handler to `lambda_function.handler`.
 2. Grant the Lambda execution role permission to read from the raw S3 bucket and write to the curated S3 bucket.
 3. Grant the GitHub Actions OIDC role permission to call `lambda:UpdateFunctionCode`.
-4. Configure an S3 event notification so CSV uploads to the raw bucket trigger the Lambda function.
+4. Add an S3 trigger to the Lambda function so CSV uploads to the raw bucket invoke it.
